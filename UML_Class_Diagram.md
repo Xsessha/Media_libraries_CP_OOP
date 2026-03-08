@@ -1,151 +1,181 @@
----
-config:
-  theme: mc
-  look: neo
----
+# UML Diagram – Media Libraries
+## Class Diagram
+```mermaid
 classDiagram
-direction TB
-	namespace IteratorPattern {
-        class IPlaylistIterator {
-	        +HasNext()
-	        +Next()
-	        +HasPrevious()
-	        +Previous()
-        }
 
-        class PlaylistIterator {
-	        -int position
-	        -Playlist playlist
-        }
+%% =====================================================
+%% DOMAIN LAYER
+%% =====================================================
 
-	}
-	namespace StrategyPattern {
-        class ISortingStrategy {
-	        +Sort(items)
-        }
+class MediaItem {
+    -int id
+    -string title
+    -string genre
+    -Time duration
+    -float rating
+    -Date dateAdded
+    +GetInfo() : string
+}
 
-        class SortByRating {
-        }
+class Playlist {
+    -string name
+    -List~MediaItem~ items
+    +AddItem(item: MediaItem) : void
+    +RemoveItem(item: MediaItem) : void
+    +GetItems() : List~MediaItem~
+    +Sort(strategy: ISortingStrategy) : void
+    +CreateIterator() : IPlaylistIterator
+}
 
-        class SortByDate {
-        }
+%% =====================================================
+%% ITERATOR PATTERN
+%% =====================================================
 
-        class SortByTitle {
-        }
+class IPlaylistIterator {
+    <<interface>>
+    +HasNext() : bool
+    +Next() : MediaItem
+    +HasPrevious() : bool
+    +Previous() : MediaItem
+}
 
-	}
-	namespace RepositoryPattern {
-        class IMediaRepository {
-        }
+class PlaylistIterator {
+    -int position
+    -List~MediaItem~ items
+    +HasNext() : bool
+    +Next() : MediaItem
+    +HasPrevious() : bool
+    +Previous() : MediaItem
+}
 
-        class MediaRepository {
-        }
+%% =====================================================
+%% STRATEGY PATTERN
+%% =====================================================
 
-        class IPlaylistRepository {
-        }
+class ISortingStrategy {
+    <<interface>>
+    +Sort(items: List~MediaItem~) : void
+}
 
-        class PlaylistRepository {
-        }
+class SortByRating
+class SortByDate
+class SortByTitle
 
-	}
-	namespace FactoryPattern {
-        class IExportService {
-        }
+%% =====================================================
+%% REPOSITORY / DAO PATTERN
+%% =====================================================
 
-        class JsonExportService {
-        }
+class IMediaRepository {
+    <<interface>>
+    +GetAll() : List~MediaItem~
+    +FindById(id: int) : MediaItem
+    +Save(item: MediaItem) : void
+    +Delete(item: MediaItem) : void
+}
 
-        class XmlExportService {
-        }
+class MediaRepository {
+    <<Repository>>
+    -Database database
+}
 
-        class ExportFactory {
-	        +CreateExport(type)
-        }
+class IPlaylistRepository {
+    <<interface>>
+    +GetAll() : List~Playlist~
+    +FindByName(name: string) : Playlist
+    +Save(playlist: Playlist) : void
+    +Delete(playlist: Playlist) : void
+}
 
-	}
-	namespace ServiceLayer {
-        class HistoryManager {
-        }
+class PlaylistRepository {
+    <<Repository>>
+    -Database database
+}
 
-        class ReportManager {
-        }
+%% =====================================================
+%% FACTORY METHOD PATTERN
+%% =====================================================
 
-        class MediaLibrary {
-        }
+class IExportService {
+    <<interface>>
+    +Export(playlist: Playlist) : void
+}
 
-	}
-    class MediaItem {
-	    -int id
-	    -string title
-	    -string genre
-	    -Time duration
-	    -float rating
-	    -Date dateAdded
-	    +GetInfo() string
-    }
+class JsonExportService
+class XmlExportService
 
-    class Playlist {
-	    -string name
-	    -List~MediaItem~ items
-	    +AddItem(item: MediaItem)
-	    +RemoveItem(item: MediaItem)
-	    +GetItems()
-	    +Sort(strategy: ISortingStrategy)
-	    +CreateIterator()
-    }
+class ExportFactory {
+    <<Factory>>
+    +CreateExport(type: string) : IExportService
+}
 
-    class Database {
-    }
+%% =====================================================
+%% SERVICE LAYER
+%% =====================================================
 
-	<<interface>> IPlaylistIterator
-	<<interface>> ISortingStrategy
-	<<interface>> IMediaRepository
-	<<interface>> IPlaylistRepository
-	<<interface>> IExportService
-	<<Facade>> MediaLibrary
+class HistoryManager {
+    <<Service>>
+    -List~MediaItem~ history
+    +AddToHistory(item: MediaItem) : void
+    +GetHistory() : List~MediaItem~
+    +ClearHistory() : void
+}
 
-    Playlist o-- MediaItem
-    Playlist --> IPlaylistIterator
-    PlaylistIterator ..|> IPlaylistIterator
-    Playlist ..> ISortingStrategy
-    SortByRating ..|> ISortingStrategy
-    SortByDate ..|> ISortingStrategy
-    SortByTitle ..|> ISortingStrategy
-    MediaRepository ..|> IMediaRepository
-    PlaylistRepository ..|> IPlaylistRepository
-    MediaRepository --> Database
-    PlaylistRepository --> Database
-    MediaLibrary --> IMediaRepository
-    MediaLibrary --> IPlaylistRepository
-    MediaLibrary --> HistoryManager
-    MediaLibrary --> ReportManager
-    MediaLibrary --> ExportFactory
-    ExportFactory --> IExportService
-    ExportFactory --> JsonExportService
-    ExportFactory --> XmlExportService
-    JsonExportService ..|> IExportService
-    XmlExportService ..|> IExportService
+class ReportManager {
+    <<Service>>
+    +GenerateStatistics() : string
+    +GenerateTopRated() : List~MediaItem~
+}
 
-	class IPlaylistIterator:::iterator
-	class PlaylistIterator:::iterator
-	class ISortingStrategy:::strategy
-	class SortByRating:::strategy
-	class SortByDate:::strategy
-	class SortByTitle:::strategy
-	class IMediaRepository:::repository
-	class MediaRepository:::repository
-	class IPlaylistRepository:::repository
-	class PlaylistRepository:::repository
-	class IExportService:::factory
-	class JsonExportService:::factory
-	class XmlExportService:::factory
-	class ExportFactory:::factory
-	class HistoryManager:::service
-	class ReportManager:::service
-	class MediaLibrary:::service
+class MediaLibrary {
+    <<Facade>>
+    -IMediaRepository mediaRepository
+    -IPlaylistRepository playlistRepository
+    -HistoryManager historyManager
+    -ReportManager reportManager
+    +AddMedia(item: MediaItem) : void
+    +RemoveMedia(item: MediaItem) : void
+    +CreatePlaylist(name: string) : void
+    +DeletePlaylist(name: string) : void
+    +ExportPlaylist(name: string, type: string) : void
+    +SaveAll() : void
+}
 
-	classDef iterator :,fill:#D6EAF8,stroke:#2E86C1,fill:#D6EAF8,stroke:#2E86C1
-	classDef strategy :,fill:#D5F5E3,stroke:#239B56
-	classDef repository :,fill:#FAD7A0,stroke:#CA6F1E
-	classDef factory :,fill:#E8DAEF,stroke:#7D3C98
-	classDef service :,fill:#E5E7E9,stroke:#566573
+%% =====================================================
+%% DATABASE
+%% =====================================================
+
+class Database {
+    <<database>>
+    +Connect() : void
+    +Disconnect() : void
+}
+%% =====================================================
+%% RELATIONSHIPS
+%% =====================================================
+
+Playlist o-- "0..*" MediaItem : aggregation
+
+Playlist --> IPlaylistIterator : creates
+PlaylistIterator ..|> IPlaylistIterator
+
+Playlist ..> ISortingStrategy : uses
+SortByRating ..|> ISortingStrategy
+SortByDate ..|> ISortingStrategy
+SortByTitle ..|> ISortingStrategy
+
+MediaRepository ..|> IMediaRepository
+PlaylistRepository ..|> IPlaylistRepository
+
+MediaLibrary --> IMediaRepository
+MediaLibrary --> IPlaylistRepository
+MediaLibrary --> HistoryManager
+MediaLibrary --> ReportManager
+
+MediaLibrary --> ExportFactory
+ExportFactory --> IExportService
+JsonExportService ..|> IExportService
+XmlExportService ..|> IExportService
+
+MediaRepository --> Database
+PlaylistRepository --> Database
+```
