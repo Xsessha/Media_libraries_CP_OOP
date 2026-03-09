@@ -1,0 +1,13 @@
+<ul>
+@foreach(var media in Model)
+{
+<li>
+<b>@media.Title</b> - @media.Artist
+<button onclick="playSong('@media.Filename')">Play</button>
+</li>
+}
+</ul>
+
+<audio id="audioPlayer" controls></audio>
+
+<script src="/js/player.js"></script>

@@ -1,5 +1,6 @@
 using MediaLibraryWebApp.Data;
 using MediaLibraryWebApp.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace MediaLibraryWebApp.Repositories
 {
@@ -17,9 +18,10 @@ namespace MediaLibraryWebApp.Repositories
             return _context.Ratings.ToList();
         }
 
-        public Rating? GetById(int id)
+        public Rating? Get(int userId, int mediaItemId)
         {
-            return _context.Ratings.Find(id);
+            return _context.Ratings
+                .FirstOrDefault(r => r.UserId == userId && r.MediaItemId == mediaItemId);
         }
 
         public void Add(Rating rating)
@@ -28,9 +30,10 @@ namespace MediaLibraryWebApp.Repositories
             _context.SaveChanges();
         }
 
-        public void Delete(int id)
+        public void Delete(int userId, int mediaItemId)
         {
-            var rating = _context.Ratings.Find(id);
+            var rating = _context.Ratings
+                .FirstOrDefault(r => r.UserId == userId && r.MediaItemId == mediaItemId);
 
             if (rating != null)
             {

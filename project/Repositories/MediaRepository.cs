@@ -1,5 +1,6 @@
 using MediaLibraryWebApp.Data;
 using MediaLibraryWebApp.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace MediaLibraryWebApp.Repositories
 {
@@ -14,12 +15,18 @@ namespace MediaLibraryWebApp.Repositories
 
         public IEnumerable<MediaItem> GetAll()
         {
-            return _context.MediaItems.ToList();
+            return _context.MediaItems
+                .Include(m => m.Ratings)
+                .Include(m => m.PlaylistTracks)
+                .ToList();
         }
 
         public MediaItem? GetById(int id)
         {
-            return _context.MediaItems.Find(id);
+            return _context.MediaItems
+                .Include(m => m.Ratings)
+                .Include(m => m.PlaylistTracks)
+                .FirstOrDefault(m => m.Id == id);
         }
 
         public void Add(MediaItem media)

@@ -5,8 +5,8 @@ namespace MediaLibraryWebApp.Repositories
     public interface IRatingRepository
     {
         IEnumerable<Rating> GetAll();
-        Rating? GetById(int id);
+        Rating? Get(int userId, int mediaItemId);
         void Add(Rating rating);
-        void Delete(int id);
+        void Delete(int userId, int mediaItemId);
     }
 }

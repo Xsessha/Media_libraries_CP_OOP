@@ -1,5 +1,6 @@
 using MediaLibraryWebApp.Data;
 using MediaLibraryWebApp.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace MediaLibraryWebApp.Repositories
 {
@@ -14,12 +15,16 @@ namespace MediaLibraryWebApp.Repositories
 
         public IEnumerable<Playlist> GetAll()
         {
-            return _context.Playlists.ToList();
+            return _context.Playlists
+                .Include(p => p.Tracks)
+                .ToList();
         }
 
         public Playlist? GetById(int id)
         {
-            return _context.Playlists.Find(id);
+            return _context.Playlists
+                .Include(p => p.Tracks)
+                .FirstOrDefault(p => p.Id == id);
         }
 
         public void Add(Playlist playlist)

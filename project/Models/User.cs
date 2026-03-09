@@ -16,10 +16,9 @@ namespace MediaLibraryWebApp.Models
 
         public DateTime DateRegistered { get; set; } = DateTime.Now;
 
-        // Navigation
         public ICollection<Playlist> Playlists { get; set; } = new List<Playlist>();
         public ICollection<Rating> Ratings { get; set; } = new List<Rating>();
-        public ICollection<PlaybackHistory> PlaybackHistory { get; set; } = new List<PlaybackHistory>();
         public ICollection<FavoriteMedia> FavoriteMedia { get; set; } = new List<FavoriteMedia>();
+        public ICollection<PlaybackHistory> PlaybackHistory { get; set; } = new List<PlaybackHistory>();
     }
 }

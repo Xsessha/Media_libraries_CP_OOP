@@ -10,7 +10,6 @@ namespace MediaLibraryWebApp.Models
         [Range(1,5)]
         public int RatingValue { get; set; }
 
-        // Navigation
         public User User { get; set; } = null!;
         public MediaItem MediaItem { get; set; } = null!;
     }

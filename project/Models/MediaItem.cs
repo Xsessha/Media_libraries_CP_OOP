@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 
 namespace MediaLibraryWebApp.Models
 {
@@ -26,10 +27,12 @@ namespace MediaLibraryWebApp.Models
 
         public DateTime DateAdded { get; set; } = DateTime.Now;
 
-        // Navigation
         public ICollection<PlaylistTrack> PlaylistTracks { get; set; } = new List<PlaylistTrack>();
         public ICollection<Rating> Ratings { get; set; } = new List<Rating>();
         public ICollection<PlaybackHistory> PlaybackHistory { get; set; } = new List<PlaybackHistory>();
         public ICollection<FavoriteMedia> FavoriteMedia { get; set; } = new List<FavoriteMedia>();
+
+        public double AverageRating =>
+            Ratings.Count == 0 ? 0 : Ratings.Average(r => r.RatingValue);
     }
 }
