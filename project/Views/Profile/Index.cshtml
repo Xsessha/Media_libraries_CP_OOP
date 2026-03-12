@@ -1,0 +1,20 @@
+@model MediaLibraryWebApp.Models.User
+
+@{
+    ViewData["Title"] = "Profile";
+}
+
+<div class="animate-fade-in">
+    <div class="page-header">
+        <h2>Profile</h2>
+    </div>
+
+    <div class="profile-card">
+        <div class="profile-avatar">@Model.Username.Substring(0, 1).ToUpper()</div>
+        <div class="profile-details">
+            <div class="profile-row"><span class="profile-label">Username:</span> @Model.Username</div>
+            <div class="profile-row"><span class="profile-label">Email:</span> @Model.Email</div>
+            <div class="profile-row"><span class="profile-label">Member since:</span> @Model.DateRegistered.ToString("MMMM d, yyyy")</div>
+        </div>
+    </div>
+</div>

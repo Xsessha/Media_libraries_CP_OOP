@@ -1,0 +1,66 @@
+@model IEnumerable<MediaLibraryWebApp.Models.MediaItem>
+
+@{
+    ViewData["Title"] = "Favorites";
+    var tracks = Model?.ToList() ?? new List<MediaLibraryWebApp.Models.MediaItem>();
+}
+
+<div class="animate-fade-in">
+    <div class="page-header">
+        <h2>Favorites</h2>
+    </div>
+
+    @if (!tracks.Any())
+    {
+        <div class="empty-state">
+            <p>You have no favorites yet. Click the heart icon on a track to save it here.</p>
+        </div>
+    }
+    else
+    {
+        <table class="track-table" id="favorites-table">
+            <thead>
+                <tr>
+                    <th style="width: 40px">#</th>
+                    <th>Title</th>
+                    <th>Genre</th>
+                    <th style="width: 60px"></th>
+                    <th style="width: 40px"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    var index = 1;
+                }
+                @foreach (var track in tracks)
+                {
+                    var coverUrl = $"https://picsum.photos/seed/{track.Id}/300/300";
+                    <tr onclick="playTrack('@track.Id', '@track.Filename', '@track.Title', '@track.Artist', '@coverUrl')">
+                        <td style="color: var(--text-muted); font-size: 13px;">@index</td>
+                        <td>
+                            <div class="track-info">
+                                <img class="track-cover" src="@coverUrl" alt="" />
+                                <div>
+                                    <div class="track-title">@track.Title</div>
+                                    <div class="track-artist">@track.Artist</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="track-genre">@track.Genre</td>
+                        <td>
+                            <button class="btn-play-sm" onclick="event.stopPropagation(); playTrack('@track.Id', '@track.Filename', '@track.Title', '@track.Artist', '@coverUrl')" title="Play">
+                                <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            </button>
+                        </td>
+                        <td>
+                            <button class="btn-favorite active" data-track-id="@track.Id" onclick="event.stopPropagation(); Favorites.toggle('@track.Id')" title="Remove favorite">
+                                <svg viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                            </button>
+                        </td>
+                    </tr>
+                    index++;
+                }
+            </tbody>
+        </table>
+    }
+</div>

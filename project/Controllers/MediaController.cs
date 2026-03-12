@@ -12,10 +12,30 @@ namespace MediaLibraryWebApp.Controllers
             _mediaRepository = mediaRepository;
         }
 
-        public IActionResult Index()
+        public IActionResult Index(string? q, string? sort)
         {
-            var media = _mediaRepository.GetAll();
-            return View(media);
+            ViewData["SearchQuery"] = q ?? string.Empty;
+            ViewData["Sort"] = sort ?? "title";
+
+            var media = _mediaRepository.GetAll().AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                var search = q.Trim().ToLower();
+                media = media.Where(m => m.Title.ToLower().Contains(search)
+                                         || m.Artist.ToLower().Contains(search)
+                                         || m.Genre.ToLower().Contains(search));
+            }
+
+            media = sort?.ToLower() switch
+            {
+                "title" => media.OrderBy(m => m.Title),
+                "rating" => media.OrderByDescending(m => m.AverageRating),
+                "date" => media.OrderByDescending(m => m.DateAdded),
+                _ => media.OrderBy(m => m.Title)
+            };
+
+            return View(media.ToList());
         }
     }
 }

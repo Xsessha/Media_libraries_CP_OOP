@@ -1,5 +1,6 @@
 using MediaLibraryWebApp.Data;
 using MediaLibraryWebApp.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace MediaLibraryWebApp.Repositories
 {
@@ -16,6 +17,16 @@ namespace MediaLibraryWebApp.Repositories
         {
             return _context.PlaybackHistory
                 .OrderByDescending(p => p.DatePlayed)
+                .Include(p => p.MediaItem)
+                .ToList();
+        }
+
+        public IEnumerable<PlaybackHistory> GetByUser(int userId)
+        {
+            return _context.PlaybackHistory
+                .Where(p => p.UserId == userId)
+                .OrderByDescending(p => p.DatePlayed)
+                .Include(p => p.MediaItem)
                 .ToList();
         }
 

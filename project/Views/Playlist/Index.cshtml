@@ -1,0 +1,46 @@
+﻿@model IEnumerable<MediaLibraryWebApp.Models.Playlist>
+
+@{
+    ViewData["Title"] = "Playlists";
+    var playlists = Model?.ToList() ?? new List<MediaLibraryWebApp.Models.Playlist>();
+}
+
+<div class="animate-fade-in">
+    <div class="page-header-row">
+        <h2>Playlists</h2>
+        <button class="btn-primary" onclick="document.getElementById('create-form').style.display = document.getElementById('create-form').style.display === 'none' ? 'flex' : 'none'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Playlist
+        </button>
+    </div>
+
+    <div id="create-form" style="display: none; gap: 12px; margin-bottom: 24px;" class="animate-fade-in">
+        <form method="post" action="/Playlist/Create" style="display: flex; gap: 12px; flex: 1; max-width: 400px;">
+            <input type="text" name="name" placeholder="Playlist name..." class="search-bar" style="max-width: none; padding: 10px 16px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 13px; outline: none; flex: 1;" />
+            <button type="submit" class="btn-primary">Create</button>
+        </form>
+    </div>
+
+    <div class="card-grid stagger-children">
+        @if (playlists.Any())
+        {
+            @foreach (var pl in playlists)
+            {
+                <a href="/Playlist/Details/@pl.Id" class="playlist-card">
+                    <img class="card-cover" src="https://picsum.photos/seed/p@pl.Id/300/300" alt="@pl.Name" />
+                    <div class="card-play-btn">
+                        <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    </div>
+                    <div class="card-title">@pl.Name</div>
+                    <div class="card-subtitle">@pl.Tracks.Count tracks</div>
+                </a>
+            }
+        }
+        else
+        {
+            <div class="empty-state">
+                <p>You have no playlists yet. Create one using the button above.</p>
+            </div>
+        }
+    </div>
+</div>
