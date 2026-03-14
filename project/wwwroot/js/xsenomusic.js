@@ -31,6 +31,7 @@ const PlayerState = {
 
   init() {
     this.audio.volume = this.volume;
+    this.clearPlayerUI();
     this.audio.addEventListener('timeupdate', () => this.updateProgress());
     this.audio.addEventListener('ended', () => this.nextTrack());
     this.audio.addEventListener('loadedmetadata', () => this.updateDuration());
@@ -51,9 +52,17 @@ const PlayerState = {
       volumeBar.addEventListener('click', (e) => {
         const rect = volumeBar.getBoundingClientRect();
         const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-        this.volume = pct;
-        this.audio.volume = pct;
-        document.getElementById('volume-fill').style.width = (pct * 100) + '%';
+        this.setVolume(pct);
+      });
+    }
+
+    // Volume range slider
+    const volumeRange = document.getElementById('volume-range');
+    if (volumeRange) {
+      volumeRange.value = this.volume;
+      volumeRange.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        this.setVolume(value);
       });
     }
   },
@@ -82,20 +91,54 @@ const PlayerState = {
   play() {
     this.audio.play();
     this.isPlaying = true;
+    const player = document.getElementById('music-player');
+    if (player) player.classList.add('playing');
+    const status = document.getElementById('player-status');
+    if (status) status.textContent = 'Playing';
     this.updatePlayButton();
   },
 
   pause() {
     this.audio.pause();
     this.isPlaying = false;
+    const status = document.getElementById('player-status');
+    if (status) status.textContent = 'Paused';
     this.updatePlayButton();
   },
 
   stop() {
     this.audio.pause();
     this.audio.currentTime = 0;
+    this.audio.src = '';
     this.isPlaying = false;
+    const player = document.getElementById('music-player');
+    if (player) player.classList.remove('playing');
+    const status = document.getElementById('player-status');
+    if (status) status.textContent = 'Stopped';
+    this.clearPlayerUI();
     this.updatePlayButton();
+  },
+
+  clearPlayerUI() {
+    this.currentTrack = null;
+    const player = document.getElementById('music-player');
+    const cover = document.getElementById('player-cover');
+    const titleEl = document.getElementById('player-title');
+    const artistEl = document.getElementById('player-artist');
+    const fill = document.getElementById('progress-fill');
+    const currentTime = document.getElementById('current-time');
+
+    if (player) player.classList.remove('playing');
+    if (cover) {
+      cover.classList.add('hidden');
+      cover.src = '/media/default-cover.png';
+    }
+    if (titleEl) titleEl.textContent = 'No track selected';
+    if (artistEl) artistEl.textContent = '';
+    const status = document.getElementById('player-status');
+    if (status) status.textContent = 'Stopped';
+    if (fill) fill.style.width = '0%';
+    if (currentTime) currentTime.textContent = '0:00';
   },
 
   togglePlay() {
@@ -143,15 +186,40 @@ const PlayerState = {
     this.play();
   },
 
+  setVolume(value) {
+    const volume = Math.min(1, Math.max(0, value));
+    this.volume = volume;
+    this.audio.volume = volume;
+
+    const fill = document.getElementById('volume-fill');
+    if (fill) fill.style.width = (volume * 100) + '%';
+
+    const range = document.getElementById('volume-range');
+    if (range) range.value = volume;
+  },
+
   updatePlayerUI() {
     const t = this.currentTrack;
-    if (!t) return;
+    const player = document.getElementById('music-player');
     const cover = document.getElementById('player-cover');
     const titleEl = document.getElementById('player-title');
     const artistEl = document.getElementById('player-artist');
-    if (cover) { cover.src = t.coverUrl || '/media/default-cover.png'; cover.style.display = 'block'; }
-    if (titleEl) titleEl.textContent = t.title || '';
-    if (artistEl) artistEl.textContent = t.artist || '';
+
+    if (!t) {
+      if (player) player.classList.remove('playing');
+      this.clearPlayerUI();
+      return;
+    }
+
+    if (player) player.classList.add('playing');
+    if (cover) {
+      cover.src = t.coverUrl || '/media/default-cover.png';
+      cover.classList.remove('hidden');
+      cover.style.display = 'block';
+    }
+
+    if (titleEl) titleEl.textContent = t.title || t.filename || 'Unknown track';
+    if (artistEl) artistEl.textContent = t.artist || 'Unknown artist';
 
     // Reset progress
     const fill = document.getElementById('progress-fill');

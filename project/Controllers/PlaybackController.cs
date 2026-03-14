@@ -48,6 +48,9 @@ namespace MediaLibraryWebApp.Controllers
                 return BadRequest();
             }
 
+            media.PlayCount += 1;
+            _mediaRepository.Update(media);
+
             var entry = new MediaLibraryWebApp.Models.PlaybackHistory
             {
                 UserId = userId,

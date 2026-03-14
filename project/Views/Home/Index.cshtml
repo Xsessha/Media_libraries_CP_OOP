@@ -3,11 +3,15 @@
 {
 <li>
 <b>@media.Title</b> - @media.Artist
-<button onclick="playSong('@media.Filename')">Play</button>
+<button onclick="playTrack('@media.Id', '@media.Filename', '@media.Title', '@media.Artist', '@media.CoverUrl' || '/media/default-cover.png')">Play</button>
 </li>
 }
 </ul>
 
-<audio id="audioPlayer" controls></audio>
+<nav class="sr-only" aria-hidden="true">Now playing uses bottom fixed player</nav>
 
+<!-- Old native audio is no longer needed; new player uses PlayerState -->
+<!-- <audio id="audioPlayer" controls></audio> -->
+
+<!-- player.js kept for backward compatibility with playSong() wrapper -->
 <script src="/js/player.js"></script>

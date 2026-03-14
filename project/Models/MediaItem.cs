@@ -36,3 +36,5 @@ namespace MediaLibraryWebApp.Models
             Ratings.Count == 0 ? 0 : Ratings.Average(r => r.RatingValue);
     }
 }
+
+

@@ -1,0 +1,88 @@
+@model MediaLibraryWebApp.Models.Playlist
+
+@{
+    ViewData["Title"] = "Playlist Details";
+    var playlist = Model;
+    var availableMedia = ViewData["AvailableMedia"] as List<MediaLibraryWebApp.Models.MediaItem> ?? new List<MediaLibraryWebApp.Models.MediaItem>();
+}
+
+<div class="animate-fade-in">
+    <div class="page-header-row">
+        <h2>@playlist.Name</h2>
+        <form method="post" action="/Playlist/Delete" style="margin: 0;">
+            <input type="hidden" name="id" value="@playlist.Id" />
+            <button class="btn-secondary" type="submit" style="border-radius: 5px; padding: 6px 12px;">Delete Playlist</button>
+        </form>
+    </div>
+
+    <div class="section">
+        <h3>Tracks (@playlist.Tracks.Count)</h3>
+        @if (!playlist.Tracks.Any())
+        {
+            <p>No tracks yet. Add some below.</p>
+        }
+        else
+        {
+            <table class="track-table" style="width:100%; margin-bottom:20px;">
+                <thead>
+                    <tr><th>#</th><th>Title</th><th>Artist</th><th>Genre</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var track in playlist.Tracks.OrderBy(t => t.Position))
+                    {
+                        <tr>
+                            <td>@track.Position</td>
+                            <td>@track.MediaItem.Title</td>
+                            <td>@track.MediaItem.Artist</td>
+                            <td>@track.MediaItem.Genre</td>
+                            <td>
+                                <form method="post" action="/Playlist/RemoveTrack" style="display:inline;">
+                                    <input type="hidden" name="playlistId" value="@playlist.Id" />
+                                    <input type="hidden" name="mediaItemId" value="@track.MediaItemId" />
+                                    <button type="submit" class="btn-secondary" style="font-size:11px;">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    <div class="section">
+        <h3>Add Track to Playlist</h3>
+        @if (!availableMedia.Any())
+        {
+            <p>All media are already in this playlist.</p>
+        }
+        else
+        {
+            <table class="track-table" style="width:100%;">
+                <thead>
+                    <tr><th>Title</th><th>Artist</th><th>Genre</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var track in availableMedia)
+                    {
+                        <tr>
+                            <td>@track.Title</td>
+                            <td>@track.Artist</td>
+                            <td>@track.Genre</td>
+                            <td>
+                                <form method="post" action="/Playlist/AddTrack" style="display:inline;">
+                                    <input type="hidden" name="playlistId" value="@playlist.Id" />
+                                    <input type="hidden" name="mediaItemId" value="@track.Id" />
+                                    <button type="submit" class="btn-primary" style="font-size:11px;">Add</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    <div class="section">
+        <a href="/Media" class="btn-secondary">Back to Library</a>
+    </div>
+</div>

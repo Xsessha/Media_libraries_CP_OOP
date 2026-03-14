@@ -20,6 +20,7 @@
         <select name="sort" class="sort-select" onchange="this.form.submit()">
             <option value="title" @(ViewData["Sort"]?.ToString() == "title" ? "selected" : "")>Sort by Title</option>
             <option value="rating" @(ViewData["Sort"]?.ToString() == "rating" ? "selected" : "")>Sort by Rating</option>
+            <option value="plays" @(ViewData["Sort"]?.ToString() == "plays" ? "selected" : "")>Sort by Plays</option>
             <option value="date" @(ViewData["Sort"]?.ToString() == "date" ? "selected" : "")>Sort by Date Added</option>
         </select>
     </form>
@@ -30,6 +31,7 @@
                 <th style="width: 40px">#</th>
                 <th>Title</th>
                 <th>Genre</th>
+                <th>Plays</th>
                 <th>Rating</th>
                 <th style="width: 60px"></th>
                 <th style="width: 40px"></th>
@@ -56,6 +58,7 @@
                             </div>
                         </td>
                         <td class="track-genre">@track.Genre</td>
+                        <td class="track-plays">@track.PlayCount</td>
                         <td>
                             <div class="rating-stars" data-track-id="@track.Id">
                                 @for (int s = 1; s <= 5; s++)

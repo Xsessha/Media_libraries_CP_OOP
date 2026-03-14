@@ -28,7 +28,7 @@ namespace MediaLibraryWebApp.Controllers
 
         [HttpPost]
         [AllowAnonymous]
-        public async Task<IActionResult> Login(string username, string? returnUrl = null)
+        public async Task<IActionResult> Login(string username, string email, string? returnUrl = null)
         {
             if (string.IsNullOrWhiteSpace(username))
             {
@@ -37,18 +37,36 @@ namespace MediaLibraryWebApp.Controllers
                 return View();
             }
 
+            if (string.IsNullOrWhiteSpace(email) || !email.Contains("@"))
+            {
+                ModelState.AddModelError(string.Empty, "Please enter a valid email address.");
+                ViewData["ReturnUrl"] = returnUrl;
+                return View();
+            }
+
             username = username.Trim();
+            email = email.Trim();
+
             var user = _db.Users.FirstOrDefault(u => u.Username == username);
             if (user == null)
             {
                 user = new User
                 {
                     Username = username,
-                    Email = string.Empty,
+                    Email = email,
                 };
 
                 _db.Users.Add(user);
                 _db.SaveChanges();
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(user.Email) || !string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase))
+                {
+                    user.Email = email;
+                    _db.Users.Update(user);
+                    _db.SaveChanges();
+                }
             }
 
             var claims = new List<Claim>

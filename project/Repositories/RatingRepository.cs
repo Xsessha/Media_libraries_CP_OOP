@@ -30,6 +30,12 @@ namespace MediaLibraryWebApp.Repositories
             _context.SaveChanges();
         }
 
+        public void Update(Rating rating)
+        {
+            _context.Ratings.Update(rating);
+            _context.SaveChanges();
+        }
+
         public void Delete(int userId, int mediaItemId)
         {
             var rating = _context.Ratings

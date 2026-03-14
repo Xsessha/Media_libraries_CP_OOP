@@ -31,6 +31,7 @@ namespace MediaLibraryWebApp.Controllers
             {
                 "title" => media.OrderBy(m => m.Title),
                 "rating" => media.OrderByDescending(m => m.AverageRating),
+                "plays" => media.OrderByDescending(m => m.PlayCount),
                 "date" => media.OrderByDescending(m => m.DateAdded),
                 _ => media.OrderBy(m => m.Title)
             };
