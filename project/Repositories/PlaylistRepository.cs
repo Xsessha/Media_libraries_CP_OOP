@@ -49,5 +49,28 @@ namespace MediaLibraryWebApp.Repositories
                 _context.SaveChanges();
             }
         }
+
+       // НОВИЙ МЕТОД: Видалення треку без порушення ключів БД
+       public void RemoveTrackFromPlaylist(int playlistId, int mediaItemId)
+       {
+         var playlist = _context.Playlists
+        .Include(p => p.Tracks)
+        .FirstOrDefault(p => p.Id == playlistId);
+
+    if (playlist != null)
+    {
+        var track = playlist.Tracks.FirstOrDefault(t => t.MediaItemId == mediaItemId);
+        if (track != null)
+        {
+            // Прямо кажемо базі даних видалити цей зв'язок
+            _context.Remove(track); 
+
+            // Відразу зберігаємо зміни. 
+            // Ми більше НЕ намагаємося змінити Position в інших треків, 
+            // щоб не сердити Entity Framework :)
+            _context.SaveChanges();
+        }
+    }
+}
     }
 }

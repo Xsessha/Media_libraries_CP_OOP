@@ -93,25 +93,18 @@ namespace MediaLibraryWebApp.Controllers
 
         [HttpPost]
         public IActionResult RemoveTrack(int playlistId, int mediaItemId)
-        {
-            var userId = GetUserId();
-            if (!userId.HasValue) return Unauthorized();
+{
+    var userId = GetUserId();
+    if (!userId.HasValue) return Unauthorized();
 
-            var playlist = _playlistRepository.GetById(playlistId);
-            if (playlist == null || playlist.UserId != userId.Value) return NotFound();
+    var playlist = _playlistRepository.GetById(playlistId);
+    if (playlist == null || playlist.UserId != userId.Value) return NotFound();
 
-            var track = playlist.Tracks.FirstOrDefault(t => t.MediaItemId == mediaItemId);
-            if (track != null)
-            {
-                playlist.Tracks.Remove(track);
-                // Reorder positions
-                var ordered = playlist.Tracks.OrderBy(t => t.Position).ToList();
-                for (int i = 0; i < ordered.Count; i++) ordered[i].Position = i + 1;
-                _playlistRepository.Update(playlist);
-            }
+    // Викликаємо нашу нову магію з репозиторію
+    _playlistRepository.RemoveTrackFromPlaylist(playlistId, mediaItemId);
 
-            return RedirectToAction("Details", new { id = playlistId });
-        }
+    return RedirectToAction("Details", new { id = playlistId });
+}
 
         [HttpPost]
         public IActionResult Delete(int id)

@@ -9,5 +9,6 @@ namespace MediaLibraryWebApp.Repositories
         void Add(Playlist playlist);
         void Update(Playlist playlist);
         void Delete(int id);
+        void RemoveTrackFromPlaylist(int playlistId, int mediaItemId);
     }
 }
