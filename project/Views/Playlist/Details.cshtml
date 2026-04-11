@@ -9,22 +9,25 @@
 <div class="animate-fade-in">
     
     <div class="page-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 style="margin: 0;">@playlist.Name</h2>
+        <h2 style="margin: 0;">@playlist?.Name</h2>
         
         <div style="display: flex; gap: 15px; align-items: center;">
             
-            @if (playlist.Tracks.Any())
+            @if (playlist?.Tracks != null && playlist.Tracks.Any())
             {
-                var trackList = playlist.Tracks.OrderBy(t => t.Position).Select(t => new {
-                    title = t.MediaItem.Title,
-                    artist = t.MediaItem.Artist,
-                    filename = t.MediaItem.Filename 
-                }).ToList();
+                var trackList = playlist.Tracks
+                    .Where(t => t.MediaItem != null)
+                    .OrderBy(t => t.Position)
+                    .Select(t => new {
+                        title = t.MediaItem.Title ?? "Unknown",
+                        artist = t.MediaItem.Artist ?? "Unknown",
+                        filename = t.MediaItem.Filename ?? "",
+                        // УВАГА: Якщо ваша колонка з картинкою називається не ImagePath, змініть її тут!
+                        coverPath = ""
+                    }).ToList();
 
-                // Серіалізуємо у рядок
                 var jsonTracks = System.Text.Json.JsonSerializer.Serialize(trackList);
 
-                // ЗАЛІЗОБЕТОННИЙ СПОСІБ: ховаємо JSON прямо в атрибут data-tracks
                 <button data-tracks="@jsonTracks" 
                         onclick="startPlaylistFromButton(this)" 
                         class="btn" 
@@ -38,16 +41,19 @@
                 Save
             </a>
 
-            <form method="post" action="/Playlist/Delete" style="margin: 0;">
-                <input type="hidden" name="id" value="@playlist.Id" />
-                <button class="btn-secondary" type="submit" style="border-radius: 20px; padding: 6px 20px;">Delete Playlist</button>
-            </form>
+            @if (playlist != null)
+            {
+                <form method="post" action="/Playlist/Delete" style="margin: 0;">
+                    <input type="hidden" name="id" value="@playlist.Id" />
+                    <button class="btn-secondary" type="submit" style="border-radius: 20px; padding: 6px 20px;">Delete Playlist</button>
+                </form>
+            }
         </div>
     </div>
 
     <div class="section">
-        <h3>Tracks (@playlist.Tracks.Count)</h3>
-        @if (!playlist.Tracks.Any())
+        <h3>Tracks (@(playlist?.Tracks?.Count ?? 0))</h3>
+        @if (playlist?.Tracks == null || !playlist.Tracks.Any())
         {
             <p>No tracks yet. Add some below.</p>
         }
@@ -58,7 +64,7 @@
                     <tr><th>#</th><th>Title</th><th>Artist</th><th>Genre</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
-                    @foreach (var track in playlist.Tracks.OrderBy(t => t.Position))
+                    @foreach (var track in playlist.Tracks.Where(t => t.MediaItem != null).OrderBy(t => t.Position))
                     {
                         <tr>
                             <td>@track.Position</td>
@@ -100,7 +106,7 @@
                             <td>@track.Genre</td>
                             <td>
                                 <form method="post" action="/Playlist/AddTrack" style="display:inline;">
-                                    <input type="hidden" name="playlistId" value="@playlist.Id" />
+                                    <input type="hidden" name="playlistId" value="@playlist?.Id" />
                                     <input type="hidden" name="mediaItemId" value="@track.Id" />
                                     <button type="submit" class="btn-primary" style="font-size:11px;">Add</button>
                                 </form>
@@ -120,7 +126,66 @@
 <script>
     let playlistQueue = [];
     let currentQueueIndex = 0;
-    let playlistAudio = null; // Глобальна змінна для нашого аудіо
+    let playlistAudio = null; 
+    let isPlaylistMode = false;
+
+    let originalTogglePlay = null;
+    let originalNext = null;
+    let originalPrev = null;
+    let originalStop = null;
+
+    function hookPlayerControls() {
+        if (typeof PlayerState !== 'undefined' && !originalTogglePlay) {
+            originalTogglePlay = PlayerState.togglePlay;
+            originalNext = PlayerState.nextTrack;
+            originalPrev = PlayerState.prevTrack;
+            originalStop = PlayerState.stop;
+
+            PlayerState.togglePlay = function() {
+                if (isPlaylistMode && playlistAudio) {
+                    if (playlistAudio.paused) {
+                        playlistAudio.play();
+                        document.getElementById('player-status').innerText = "Playing...";
+                    } else {
+                        playlistAudio.pause();
+                        document.getElementById('player-status').innerText = "Paused";
+                    }
+                } else if (originalTogglePlay) {
+                    originalTogglePlay.apply(PlayerState);
+                }
+            };
+
+            PlayerState.nextTrack = function() {
+                if (isPlaylistMode) {
+                    currentQueueIndex++;
+                    playCurrentQueueTrack();
+                } else if (originalNext) {
+                    originalNext.apply(PlayerState);
+                }
+            };
+
+            PlayerState.prevTrack = function() {
+                if (isPlaylistMode) {
+                    currentQueueIndex--;
+                    if (currentQueueIndex < 0) currentQueueIndex = 0;
+                    playCurrentQueueTrack();
+                } else if (originalPrev) {
+                    originalPrev.apply(PlayerState);
+                }
+            };
+
+            PlayerState.stop = function() {
+                if (isPlaylistMode && playlistAudio) {
+                    playlistAudio.pause();
+                    playlistAudio.currentTime = 0;
+                    document.getElementById('player-status').innerText = "Stopped";
+                    isPlaylistMode = false;
+                } else if (originalStop) {
+                    originalStop.apply(PlayerState);
+                }
+            };
+        }
+    }
 
     function startPlaylistFromButton(buttonElement) {
         try {
@@ -141,21 +206,23 @@
 
         playlistQueue = tracks;
         currentQueueIndex = 0;
+        isPlaylistMode = true; 
         
+        hookPlayerControls(); 
         playCurrentQueueTrack();
     }
 
     function playCurrentQueueTrack() {
         if (currentQueueIndex >= playlistQueue.length) {
             document.getElementById('player-status').innerText = "Playlist Completed";
-            document.getElementById('player-title').innerText = "No track selected";
-            document.getElementById('player-artist').innerText = "";
+            isPlaylistMode = false; 
             return;
         }
 
+        if (currentQueueIndex < 0) currentQueueIndex = 0;
+
         let track = playlistQueue[currentQueueIndex];
         
-        // 1. Шукаємо існуючий аудіо-тег на сторінці, або створюємо свій
         if (!playlistAudio) {
             playlistAudio = document.querySelector('audio');
             if (!playlistAudio) {
@@ -165,43 +232,47 @@
             }
         }
 
-        // 2. Завантажуємо пісню
         playlistAudio.src = "/media/" + track.filename; 
 
-        // 3. МАГІЯ: Оживляємо ваш нижній плеєр з _Layout.cshtml!
         document.getElementById('player-title').innerText = track.title;
         document.getElementById('player-artist').innerText = track.artist;
         document.getElementById('player-status').innerText = "Playing...";
         
-        // Показуємо обкладинку (якщо вона була прихована)
+        // ОНОВЛЕННЯ КАРТИНКИ
         let cover = document.getElementById('player-cover');
-        if (cover) cover.style.display = 'block';
+        if (cover) {
+            if (track.coverPath) {
+                cover.src = track.coverPath; // Підставляємо шлях до картинки
+            } else {
+                cover.src = "/images/default-cover.png"; // Стандартна заглушка (якщо є)
+            }
+            cover.style.display = 'block';
+        }
 
-        // 4. Запускаємо музику
         playlistAudio.play().catch(error => {
             console.warn("Браузер блокує автовідтворення. Натисніть на сторінку.");
         });
 
-        // 5. Коли пісня закінчиться -> автоматично включаємо наступну
         playlistAudio.onended = function() {
-            currentQueueIndex++;
-            playCurrentQueueTrack();
+            if (isPlaylistMode) {
+                currentQueueIndex++;
+                playCurrentQueueTrack();
+            }
         };
 
-        // 6. Оживляємо повзунок часу і таймери!
         playlistAudio.ontimeupdate = function() {
+            if (!isPlaylistMode) return; 
+
             let currentTimeEl = document.getElementById('current-time');
             let totalTimeEl = document.getElementById('total-time');
             let progressFill = document.getElementById('progress-fill');
             
-            // Оновлюємо поточний час (наприклад 1:23)
             if (currentTimeEl) {
                 let mins = Math.floor(playlistAudio.currentTime / 60);
                 let secs = Math.floor(playlistAudio.currentTime % 60).toString().padStart(2, '0');
                 currentTimeEl.innerText = `${mins}:${secs}`;
             }
             
-            // Оновлюємо загальний час і рухаємо синю смужку прогресу
             if (progressFill && playlistAudio.duration) {
                 let percent = (playlistAudio.currentTime / playlistAudio.duration) * 100;
                 progressFill.style.width = percent + '%';

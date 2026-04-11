@@ -1,13 +1,14 @@
-﻿@model IEnumerable<MediaLibraryWebApp.Models.MediaItem>
+@model IEnumerable<MediaLibraryWebApp.Models.MediaItem>
 @using System.Web
 
 @{
     ViewData["Title"] = "Library";
+    // Використовуємо Model безпосередньо, щоб створити локальний список
     var tracksList = Model?.ToList() ?? new List<MediaLibraryWebApp.Models.MediaItem>();
 }
 
 <div class="animate-fade-in">
-    @* ===== HEADER ТА ПОШУК (ВІДНОВЛЕНО) ===== *@
+    @* ===== HEADER ТА ПОШУК (ПОВЕРНЕНО) ===== *@
     <div class="page-header">
         <h2>Library</h2>
     </div>
@@ -27,7 +28,7 @@
         </select>
     </form>
 
-    @* ===== ТАБЛИЦЯ ТРЕКІВ ===== *@
+    @* ===== ТАБЛИЦЯ ТРЕКІВ (ВІДНОВЛЕНО СТИЛЬ) ===== *@
     <table class="track-table">
         <thead>
             <tr>
@@ -36,7 +37,7 @@
                 <th>GENRE</th>
                 <th>PLAYS</th>
                 <th>RATING</th>
-                <th style="width: 100px"></th> @* Кнопки дій *@
+                <th style="width: 100px"></th> @* Кнопки дій праворуч *@
             </tr>
         </thead>
         <tbody>
@@ -45,18 +46,17 @@
                 for (int i = 0; i < tracksList.Count; i++)
                 {
                     var track = tracksList[i];
-                    var coverUrl = $"https://picsum.photos/seed/{track.Id}/300/300";
-                    var rating = (int)Math.Round(track.AverageRating);
+                    var img = $"https://picsum.photos/seed/{track.Id}/300/300";
 
                     <tr class="track-row" onclick="playFromLibrary(@i)" style="cursor: pointer;">
                         <td class="text-muted">@(i + 1)</td>
                         <td>
                             <div class="track-info">
-                                <img class="track-cover" src="@coverUrl" alt="Cover" />
+                                <img class="track-cover" src="@img" alt="Cover" />
                                 <div>
                                     <div class="track-title">@track.Title</div>
                                     <div class="track-artist">@track.Artist</div>
-                                }
+                                </div>
                             </div>
                         </td>
                         <td class="track-genre">@track.Genre</td>
@@ -67,8 +67,8 @@
                                 {
                                     var starLevel = s;
                                     @* ВИПРАВЛЕНО: Зірочки тепер викликають setRating *@
-                                    <span class="star @(s <= rating ? "filled" : "")" onclick="event.stopPropagation(); setRating('@track.Id', @starLevel)">
-                                        @if (s <= rating) {
+                                    <span class="star @(s <= Math.Round(track.AverageRating) ? "filled" : "")" onclick="event.stopPropagation(); setRating('@track.Id', @starLevel)">
+                                        @if (s <= Math.Round(track.AverageRating)) {
                                             <svg viewBox="0 0 24 24" fill="#facc15"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                                         } else {
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -78,11 +78,11 @@
                             </div>
                         </td>
                         <td class="track-actions">
-                            @* ПОНОВЛЕНО: Оригінальна SVG-іконка Плей *@
+                            @* Кнопка Плей *@
                             <button class="btn-play-sm" onclick="event.stopPropagation(); playFromLibrary(@i)">
                                 <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                             </button>
-                            @* ПОНОВЛЕНО: Оригінальна SVG-іконка Сердечка та ВИПРАВЛЕНО onclick *@
+                            @* ВИПРАВЛЕНО: Кнопка сердечка праворуч і працює *@
                             <button class="btn-favorite" onclick="event.stopPropagation(); Favorites.toggle('@track.Id')">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                             </button>
@@ -96,8 +96,9 @@
 
 @section Scripts {
     <script>
-        // Створення черги для плеєра
+        // Створюємо масив пісень для плеєра БЕЗ помилкового CoverPath
         var libraryTracks = [];
+        
         @foreach (var t in tracksList) {
             @:libraryTracks.push({
                 @:filename: "@Html.Raw(HttpUtility.JavaScriptStringEncode(t.Filename ?? ""))",
@@ -107,7 +108,6 @@
             @:});
         }
 
-        // Функція запуску з Library
         function playFromLibrary(index) {
             if (window.PlayerState && typeof window.PlayerState.playQueue === 'function') {
                 window.PlayerState.playQueue(libraryTracks, index);
