@@ -7,12 +7,42 @@
 }
 
 <div class="animate-fade-in">
-    <div class="page-header-row">
-        <h2>@playlist.Name</h2>
-        <form method="post" action="/Playlist/Delete" style="margin: 0;">
-            <input type="hidden" name="id" value="@playlist.Id" />
-            <button class="btn-secondary" type="submit" style="border-radius: 5px; padding: 6px 12px;">Delete Playlist</button>
-        </form>
+    
+    <div class="page-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0;">@playlist.Name</h2>
+        
+        <div style="display: flex; gap: 15px; align-items: center;">
+            
+            @if (playlist.Tracks.Any())
+            {
+                var trackList = playlist.Tracks.OrderBy(t => t.Position).Select(t => new {
+                    title = t.MediaItem.Title,
+                    artist = t.MediaItem.Artist,
+                    filename = t.MediaItem.Filename 
+                }).ToList();
+
+                // Серіалізуємо у рядок
+                var jsonTracks = System.Text.Json.JsonSerializer.Serialize(trackList);
+
+                // ЗАЛІЗОБЕТОННИЙ СПОСІБ: ховаємо JSON прямо в атрибут data-tracks
+                <button data-tracks="@jsonTracks" 
+                        onclick="startPlaylistFromButton(this)" 
+                        class="btn" 
+                        style="background-color: #1ed760; color: #000; font-weight: bold; border-radius: 50%; width: 45px; height: 45px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;"
+                        title="Play Playlist">
+                    <span style="font-size: 20px; margin-left: 4px;">▶</span>
+                </button>
+            }
+
+            <a href="/Playlist" class="btn" style="background-color: #1ed760; color: #000; font-weight: bold; border-radius: 20px; padding: 6px 20px; text-decoration: none; font-size: 14px;">
+                Save
+            </a>
+
+            <form method="post" action="/Playlist/Delete" style="margin: 0;">
+                <input type="hidden" name="id" value="@playlist.Id" />
+                <button class="btn-secondary" type="submit" style="border-radius: 20px; padding: 6px 20px;">Delete Playlist</button>
+            </form>
+        </div>
     </div>
 
     <div class="section">
@@ -86,3 +116,102 @@
         <a href="/Media" class="btn-secondary">Back to Library</a>
     </div>
 </div>
+
+<script>
+    let playlistQueue = [];
+    let currentQueueIndex = 0;
+    let playlistAudio = null; // Глобальна змінна для нашого аудіо
+
+    function startPlaylistFromButton(buttonElement) {
+        try {
+            let rawData = buttonElement.getAttribute('data-tracks');
+            let tracks = JSON.parse(rawData);
+            playPlaylist(tracks);
+        } catch (error) {
+            console.error("Помилка при читанні списку треків:", error);
+            alert("Не вдалося прочитати дані плейлиста.");
+        }
+    }
+
+    function playPlaylist(tracks) {
+        if (!tracks || tracks.length === 0) {
+            alert("Плейлист порожній!");
+            return;
+        }
+
+        playlistQueue = tracks;
+        currentQueueIndex = 0;
+        
+        playCurrentQueueTrack();
+    }
+
+    function playCurrentQueueTrack() {
+        if (currentQueueIndex >= playlistQueue.length) {
+            document.getElementById('player-status').innerText = "Playlist Completed";
+            document.getElementById('player-title').innerText = "No track selected";
+            document.getElementById('player-artist').innerText = "";
+            return;
+        }
+
+        let track = playlistQueue[currentQueueIndex];
+        
+        // 1. Шукаємо існуючий аудіо-тег на сторінці, або створюємо свій
+        if (!playlistAudio) {
+            playlistAudio = document.querySelector('audio');
+            if (!playlistAudio) {
+                playlistAudio = document.createElement('audio');
+                playlistAudio.id = 'global-audio-player';
+                document.body.appendChild(playlistAudio);
+            }
+        }
+
+        // 2. Завантажуємо пісню
+        playlistAudio.src = "/media/" + track.filename; 
+
+        // 3. МАГІЯ: Оживляємо ваш нижній плеєр з _Layout.cshtml!
+        document.getElementById('player-title').innerText = track.title;
+        document.getElementById('player-artist').innerText = track.artist;
+        document.getElementById('player-status').innerText = "Playing...";
+        
+        // Показуємо обкладинку (якщо вона була прихована)
+        let cover = document.getElementById('player-cover');
+        if (cover) cover.style.display = 'block';
+
+        // 4. Запускаємо музику
+        playlistAudio.play().catch(error => {
+            console.warn("Браузер блокує автовідтворення. Натисніть на сторінку.");
+        });
+
+        // 5. Коли пісня закінчиться -> автоматично включаємо наступну
+        playlistAudio.onended = function() {
+            currentQueueIndex++;
+            playCurrentQueueTrack();
+        };
+
+        // 6. Оживляємо повзунок часу і таймери!
+        playlistAudio.ontimeupdate = function() {
+            let currentTimeEl = document.getElementById('current-time');
+            let totalTimeEl = document.getElementById('total-time');
+            let progressFill = document.getElementById('progress-fill');
+            
+            // Оновлюємо поточний час (наприклад 1:23)
+            if (currentTimeEl) {
+                let mins = Math.floor(playlistAudio.currentTime / 60);
+                let secs = Math.floor(playlistAudio.currentTime % 60).toString().padStart(2, '0');
+                currentTimeEl.innerText = `${mins}:${secs}`;
+            }
+            
+            // Оновлюємо загальний час і рухаємо синю смужку прогресу
+            if (progressFill && playlistAudio.duration) {
+                let percent = (playlistAudio.currentTime / playlistAudio.duration) * 100;
+                progressFill.style.width = percent + '%';
+                
+                let totalMins = Math.floor(playlistAudio.duration / 60);
+                let totalSecs = Math.floor(playlistAudio.duration % 60).toString().padStart(2, '0');
+                if (totalTimeEl && !isNaN(totalMins)) {
+                    totalTimeEl.innerText = `${totalMins}:${totalSecs}`;
+                }
+            }
+        };
+    }
+</script>
