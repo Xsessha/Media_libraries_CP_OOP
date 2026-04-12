@@ -29,14 +29,13 @@
                 </tr>
             </thead>
             <tbody>
-                @{
-                    var index = 1;
-                }
-                @foreach (var track in tracks)
+                @for (int i = 0; i < tracks.Count; i++)
                 {
+                    var track = tracks[i];
                     var coverUrl = $"https://picsum.photos/seed/{track.Id}/300/300";
-                    <tr onclick="playTrack('@track.Id', '@track.Filename', '@track.Title', '@track.Artist', '@coverUrl')">
-                        <td style="color: var(--text-muted); font-size: 13px;">@index</td>
+                    
+                    <tr onclick="playFromFavorites(@i)" style="cursor: pointer;">
+                        <td style="color: var(--text-muted); font-size: 13px;">@(i + 1)</td>
                         <td>
                             <div class="track-info">
                                 <img class="track-cover" src="@coverUrl" alt="" />
@@ -48,7 +47,7 @@
                         </td>
                         <td class="track-genre">@track.Genre</td>
                         <td>
-                            <button class="btn-play-sm" onclick="event.stopPropagation(); playTrack('@track.Id', '@track.Filename', '@track.Title', '@track.Artist', '@coverUrl')" title="Play">
+                            <button class="btn-play-sm" onclick="event.stopPropagation(); playFromFavorites(@i)" title="Play">
                                 <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                             </button>
                         </td>
@@ -58,9 +57,29 @@
                             </button>
                         </td>
                     </tr>
-                    index++;
                 }
             </tbody>
         </table>
     }
 </div>
+
+@section Scripts {
+    <script>
+        // Генеруємо масив улюблених треків для глобального плеєра
+        var favoritesTracks = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(tracks.Select(t => new {
+            id = t.Id,
+            filename = t.Filename ?? "",
+            title = t.Title ?? "Unknown",
+            artist = t.Artist ?? "Unknown Artist",
+            coverPath = $"https://picsum.photos/seed/{t.Id}/300/300"
+        })));
+
+        function playFromFavorites(index) {
+            if (window.PlayerState && typeof window.PlayerState.playQueue === 'function') {
+                window.PlayerState.playQueue(favoritesTracks, index);
+            } else {
+                console.error("PlayerState is not ready.");
+            }
+        }
+    </script>
+}

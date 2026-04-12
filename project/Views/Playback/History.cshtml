@@ -23,7 +23,7 @@
             {
                 if (entry.MediaItem == null)
                 {
-                    <div class="history-row">
+                    <div class="history-row" style="opacity: 0.5; cursor: not-allowed;">
                         <div class="history-info">
                             <div class="history-title">Unknown track</div>
                             <div class="history-artist">(removed)</div>
@@ -33,7 +33,11 @@
                 }
                 else
                 {
-                    <div class="history-row" onclick="playTrack('@entry.MediaItem.Id', '@entry.MediaItem.Filename', '@entry.MediaItem.Title', '@entry.MediaItem.Artist', 'https://picsum.photos/seed/@entry.MediaItem.Id/300/300')">
+                    // Екрануємо одинарні лапки, щоб вони не ламали JavaScript
+                    var safeTitle = entry.MediaItem.Title?.Replace("'", "\\'") ?? "Unknown";
+                    var safeArtist = entry.MediaItem.Artist?.Replace("'", "\\'") ?? "Unknown";
+                    
+                    <div class="history-row" onclick="playSingleTrack('@entry.MediaItem.Id', '@entry.MediaItem.Filename', '@safeTitle', '@safeArtist', 'https://picsum.photos/seed/@entry.MediaItem.Id/300/300')" style="cursor: pointer;">
                         <img class="history-cover" src="https://picsum.photos/seed/@entry.MediaItem.Id/80/80" alt="" />
                         <div class="history-info">
                             <div class="history-title">@entry.MediaItem.Title</div>
@@ -46,3 +50,23 @@
         </div>
     }
 </div>
+
+@section Scripts {
+    <script>
+        // Проста функція для миттєвого відтворення обраного треку з історії
+        function playSingleTrack(id, filename, title, artist, cover) {
+            var singleTrackQueue = [{
+                id: id,
+                filename: filename,
+                title: title,
+                artist: artist,
+                coverPath: cover
+            }];
+            if (window.PlayerState && window.PlayerState.playQueue) {
+                window.PlayerState.playQueue(singleTrackQueue, 0);
+            } else {
+                console.error("PlayerState is not ready.");
+            }
+        }
+    </script>
+}

@@ -3,12 +3,12 @@
 
 @{
     ViewData["Title"] = "Library";
-    // Використовуємо Model безпосередньо, щоб створити локальний список
+    // локальний список
     var tracksList = Model?.ToList() ?? new List<MediaLibraryWebApp.Models.MediaItem>();
 }
 
 <div class="animate-fade-in">
-    @* ===== HEADER ТА ПОШУК (ПОВЕРНЕНО) ===== *@
+    @* HEADER ТА ПОШУК *@
     <div class="page-header">
         <h2>Library</h2>
     </div>
@@ -28,7 +28,7 @@
         </select>
     </form>
 
-    @* ===== ТАБЛИЦЯ ТРЕКІВ (ВІДНОВЛЕНО СТИЛЬ) ===== *@
+    @* ТАБЛИЦЯ ТРЕКІВ *@
     <table class="track-table">
         <thead>
             <tr>
@@ -37,7 +37,7 @@
                 <th>GENRE</th>
                 <th>PLAYS</th>
                 <th>RATING</th>
-                <th style="width: 100px"></th> @* Кнопки дій праворуч *@
+                <th style="width: 100px"></th> 
             </tr>
         </thead>
         <tbody>
@@ -51,40 +51,43 @@
                     <tr class="track-row" onclick="playFromLibrary(@i)" style="cursor: pointer;">
                         <td class="text-muted">@(i + 1)</td>
                         <td>
-                            <div class="track-info">
-                                <img class="track-cover" src="@img" alt="Cover" />
+                            <div class="track-info" style="display: flex; align-items: center; gap: 10px;">
+                                <img class="track-cover" src="@img" alt="Cover" style="width: 40px; height: 40px; border-radius: 4px;" />
                                 <div>
-                                    <div class="track-title">@track.Title</div>
-                                    <div class="track-artist">@track.Artist</div>
+                                    <div class="track-title" style="font-weight: bold;">@track.Title</div>
+                                    <div class="track-artist" style="font-size: 0.85em; color: #aaa;">@track.Artist</div>
                                 </div>
                             </div>
                         </td>
                         <td class="track-genre">@track.Genre</td>
                         <td class="track-plays">@track.PlayCount</td>
+                        
+                        @* ЗІРОЧКИ *@
                         <td>
-                            <div class="rating-stars">
+                            <div class="rating-stars" style="display: flex; gap: 2px;">
                                 @for (int s = 1; s <= 5; s++)
                                 {
-                                    var starLevel = s;
-                                    @* ВИПРАВЛЕНО: Зірочки тепер викликають setRating *@
-                                    <span class="star @(s <= Math.Round(track.AverageRating) ? "filled" : "")" onclick="event.stopPropagation(); setRating('@track.Id', @starLevel)">
+                                    <span onclick="event.stopPropagation(); setRatingVisual(this, '@track.Id', @s)" style="cursor:pointer;">
                                         @if (s <= Math.Round(track.AverageRating)) {
-                                            <svg viewBox="0 0 24 24" fill="#facc15"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="#facc15"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                                         } else {
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#666" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                                         }
                                     </span>
                                 }
                             </div>
                         </td>
-                        <td class="track-actions">
-                            @* Кнопка Плей *@
-                            <button class="btn-play-sm" onclick="event.stopPropagation(); playFromLibrary(@i)">
-                                <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+
+                        @* КНОПКИ ПОРУЧ *@
+                        <td class="track-actions" style="display: flex; gap: 15px; align-items: center; justify-content: flex-end; padding-right: 15px; height: 100%;">
+                            <button class="btn-play-sm" onclick="event.stopPropagation(); playFromLibrary(@i)" style="background: none; border: none; color: white; cursor: pointer;">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                             </button>
-                            @* ВИПРАВЛЕНО: Кнопка сердечка праворуч і працює *@
-                            <button class="btn-favorite" onclick="event.stopPropagation(); Favorites.toggle('@track.Id')">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                            
+                            <button class="btn-favorite" onclick="event.stopPropagation(); toggleHeartVisual(this, '@track.Id')" style="background: none; border: none; color: white; cursor: pointer;">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                </svg>
                             </button>
                         </td>
                     </tr>
@@ -96,21 +99,58 @@
 
 @section Scripts {
     <script>
-        // Створюємо масив пісень для плеєра БЕЗ помилкового CoverPath
-        var libraryTracks = [];
-        
-        @foreach (var t in tracksList) {
-            @:libraryTracks.push({
-                @:filename: "@Html.Raw(HttpUtility.JavaScriptStringEncode(t.Filename ?? ""))",
-                @:title: "@Html.Raw(HttpUtility.JavaScriptStringEncode(t.Title ?? "Unknown"))",
-                @:artist: "@Html.Raw(HttpUtility.JavaScriptStringEncode(t.Artist ?? "Unknown Artist"))",
-                @:coverPath: "https://picsum.photos/seed/@t.Id/300/300"
-            @:});
-        }
+        // Безпечний спосіб передати дані з C# у JavaScript без помилок форматування
+        var libraryTracks = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(tracksList.Select(t => new {
+            id = t.Id,
+            filename = t.Filename ?? "",
+            title = t.Title ?? "Unknown",
+            artist = t.Artist ?? "Unknown Artist",
+            coverPath = $"https://picsum.photos/seed/{t.Id}/300/300"
+        })));
 
         function playFromLibrary(index) {
             if (window.PlayerState && typeof window.PlayerState.playQueue === 'function') {
                 window.PlayerState.playQueue(libraryTracks, index);
+            } else {
+                console.error("PlayerState is not ready. Make sure player.js is loaded.");
+            }
+        }
+
+        // ВІЗУАЛЬНЕ ФАРБУВАННЯ СЕРДЕЧКА
+        function toggleHeartVisual(btn, trackId) {
+            var svg = btn.querySelector('svg');
+            var isFilled = svg.getAttribute('fill') !== 'none';
+            
+            if (isFilled) {
+                svg.setAttribute('fill', 'none');
+                svg.setAttribute('stroke', 'currentColor');
+            } else {
+                svg.setAttribute('fill', '#f43f5e'); 
+                svg.setAttribute('stroke', '#f43f5e');
+            }
+            
+            if (window.Favorites && typeof window.Favorites.toggle === 'function') {
+                window.Favorites.toggle(trackId);
+            }
+        }
+
+        // ВІЗУАЛЬНЕ ФАРБУВАННЯ ЗІРОЧОК
+        function setRatingVisual(starSpan, trackId, rating) {
+            var container = starSpan.closest('.rating-stars');
+            var stars = container.querySelectorAll('span svg');
+            
+            stars.forEach((svg, index) => {
+                if (index < rating) {
+                    svg.setAttribute('fill', '#facc15'); 
+                    svg.setAttribute('stroke', 'none');
+                } else {
+                    svg.setAttribute('fill', 'none');
+                    svg.setAttribute('stroke', '#666');
+                }
+            });
+
+            if (typeof setRating === 'function') {
+                setRating(trackId, rating);
             }
         }
     </script>
