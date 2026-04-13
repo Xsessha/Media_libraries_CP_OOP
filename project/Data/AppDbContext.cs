@@ -12,12 +12,17 @@ namespace MediaLibraryWebApp.Data
         public DbSet<Playlist> Playlists { get; set; } = null!;
         public DbSet<PlaylistTrack> PlaylistTracks { get; set; } = null!;
         public DbSet<Rating> Ratings { get; set; } = null!;
-        public DbSet<PlaybackHistory> PlaybackHistory { get; set; } = null!;
+        public DbSet<PlaybackHistory> PlaybackHistories { get; set; } = null!;
         public DbSet<FavoriteMedia> FavoriteMedia { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // ==========================================
+            // ВИПРАВЛЕННЯ: Вказуємо правильну назву таблиці
+            // ==========================================
+            modelBuilder.Entity<PlaybackHistory>().ToTable("PlaybackHistory");
 
             modelBuilder.Entity<PlaylistTrack>()
                 .HasKey(pt => new { pt.PlaylistId, pt.Position });
@@ -38,30 +43,23 @@ namespace MediaLibraryWebApp.Data
                 .WithMany(m => m.PlaylistTracks)
                 .HasForeignKey(pt => pt.MediaItemId);
 
-            modelBuilder.Entity<Rating>()
-                .HasOne(r => r.User)
-                .WithMany(u => u.Ratings)
-                .HasForeignKey(r => r.UserId);
-
-            modelBuilder.Entity<Rating>()
-                .HasOne(r => r.MediaItem)
-                .WithMany(m => m.Ratings)
-                .HasForeignKey(r => r.MediaItemId);
-
-            modelBuilder.Entity<FavoriteMedia>()
-                .HasOne(f => f.User)
-                .WithMany(u => u.FavoriteMedia)
-                .HasForeignKey(f => f.UserId);
-
-            modelBuilder.Entity<FavoriteMedia>()
-                .HasOne(f => f.MediaItem)
-                .WithMany(m => m.FavoriteMedia)
-                .HasForeignKey(f => f.MediaItemId);
-
             modelBuilder.Entity<PlaybackHistory>()
                 .HasOne(h => h.User)
                 .WithMany(u => u.PlaybackHistory)
-                .HasForeignKey(h => h.UserId);
+                .HasForeignKey(h => h.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PlaybackHistory>()
+                .HasOne(h => h.MediaItem)
+                .WithMany(m => m.PlaybackHistory)
+                .HasForeignKey(h => h.MediaItemId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<PlaybackHistory>()
+                .HasOne(h => h.Playlist)
+                .WithMany()
+                .HasForeignKey(h => h.PlaylistId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

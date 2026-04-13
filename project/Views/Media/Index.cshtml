@@ -4,20 +4,17 @@
 @{
     ViewData["Title"] = "Library";
     var tracksList = Model?.ToList() ?? new List<MediaLibraryWebApp.Models.MediaItem>();
+    var userRatings = ViewBag.UserRatings as Dictionary<int, int> ?? new Dictionary<int, int>();
 }
 
 <div class="animate-fade-in">
-    @* ===== HEADER ТА ПОШУК (ВІДНОВЛЕНО) ===== *@
     <div class="page-header">
         <h2>Library</h2>
     </div>
 
     <form method="get" class="toolbar">
         <div class="search-bar">
-            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-            <input name="q" type="text" value="@ViewData["SearchQuery"]" placeholder="Search tracks or artists..." />
+            <input name="q" value="@ViewData["SearchQuery"]" placeholder="Search tracks or artists..." />
         </div>
 
         <select name="sort" class="sort-select" onchange="this.form.submit()">
@@ -27,91 +24,149 @@
         </select>
     </form>
 
-    @* ===== ТАБЛИЦЯ ТРЕКІВ ===== *@
     <table class="track-table">
         <thead>
             <tr>
-                <th style="width: 40px">#</th>
+                <th>#</th>
                 <th>TITLE</th>
                 <th>GENRE</th>
                 <th>PLAYS</th>
                 <th>RATING</th>
-                <th style="width: 100px"></th> @* Кнопки дій *@
+                <th style="text-align:right;">ACTIONS</th>
             </tr>
         </thead>
-        <tbody>
-            @if (tracksList.Any())
-            {
-                for (int i = 0; i < tracksList.Count; i++)
-                {
-                    var track = tracksList[i];
-                    var coverUrl = $"https://picsum.photos/seed/{track.Id}/300/300";
-                    var rating = (int)Math.Round(track.AverageRating);
 
-                    <tr class="track-row" onclick="playFromLibrary(@i)" style="cursor: pointer;">
-                        <td class="text-muted">@(i + 1)</td>
-                        <td>
-                            <div class="track-info">
-                                <img class="track-cover" src="@coverUrl" alt="Cover" />
-                                <div>
-                                    <div class="track-title">@track.Title</div>
-                                    <div class="track-artist">@track.Artist</div>
-                                }
-                            </div>
-                        </td>
-                        <td class="track-genre">@track.Genre</td>
-                        <td class="track-plays">@track.PlayCount</td>
-                        <td>
-                            <div class="rating-stars">
-                                @for (int s = 1; s <= 5; s++)
+        <tbody>
+        @for (int i = 0; i < tracksList.Count; i++)
+        {
+            var track = tracksList[i];
+            var rating = userRatings.ContainsKey(track.Id) ? userRatings[track.Id] : 0;
+            var imgUrl = "https://picsum.photos/seed/" + track.Id + "/300/300";
+
+            <tr onclick="playTrack(@i, '@track.Id')" style="cursor:pointer;">
+                <td>@(i + 1)</td>
+
+                <td>
+                    <div style="display:flex; gap:12px; align-items:center;">
+                        <img src="@imgUrl" style="width:40px;height:40px;border-radius:4px;" />
+                        <div>
+                            <div style="font-weight:bold; color:white;">@track.Title</div>
+                            <div style="font-size:0.85em; color:#aaa;">@track.Artist</div>
+                        </div>
+                    </div>
+                </td>
+
+                <td>@track.Genre</td>
+                <td>@track.PlayCount</td>
+
+                <!-- ⭐ ЗІРОЧКИ ЯК У ТЕБЕ -->
+                <td>
+                    <div style="display:flex; gap:4px;">
+                        @for (int s = 1; s <= 5; s++)
+                        {
+                            <span onclick="event.stopPropagation(); updateRating(this, '@track.Id', @s)" style="cursor:pointer;">
+                                @if (s <= rating)
                                 {
-                                    var starLevel = s;
-                                    @* ВИПРАВЛЕНО: Зірочки тепер викликають setRating *@
-                                    <span class="star @(s <= rating ? "filled" : "")" onclick="event.stopPropagation(); setRating('@track.Id', @starLevel)">
-                                        @if (s <= rating) {
-                                            <svg viewBox="0 0 24 24" fill="#facc15"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                                        } else {
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                                        }
-                                    </span>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#facc15" stroke="#facc15">
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                    </svg>
                                 }
-                            </div>
-                        </td>
-                        <td class="track-actions">
-                            @* ПОНОВЛЕНО: Оригінальна SVG-іконка Плей *@
-                            <button class="btn-play-sm" onclick="event.stopPropagation(); playFromLibrary(@i)">
-                                <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                            </button>
-                            @* ПОНОВЛЕНО: Оригінальна SVG-іконка Сердечка та ВИПРАВЛЕНО onclick *@
-                            <button class="btn-favorite" onclick="event.stopPropagation(); Favorites.toggle('@track.Id')">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                            </button>
-                        </td>
-                    </tr>
-                }
-            }
+                                else
+                                {
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2">
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                    </svg>
+                                }
+                            </span>
+                        }
+                    </div>
+                </td>
+
+                <!-- ❤️ ЛАЙК + ▶ -->
+                <td>
+                    <div style="display:flex; gap:15px; justify-content:flex-end;">
+
+                        <button onclick="event.stopPropagation(); toggleLike(this, '@track.Id')" style="background:none;border:none;cursor:pointer;">
+                            <svg class="heart-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                            </svg>
+                        </button>
+
+                        <button onclick="event.stopPropagation(); playTrack(@i, '@track.Id')" style="background:none;border:none;cursor:pointer;">
+                            ▶
+                        </button>
+
+                    </div>
+                </td>
+            </tr>
+        }
         </tbody>
     </table>
 </div>
 
 @section Scripts {
-    <script>
-        // Створення черги для плеєра
-        var libraryTracks = [];
-        @foreach (var t in tracksList) {
-            @:libraryTracks.push({
-                @:filename: "@Html.Raw(HttpUtility.JavaScriptStringEncode(t.Filename ?? ""))",
-                @:title: "@Html.Raw(HttpUtility.JavaScriptStringEncode(t.Title ?? "Unknown"))",
-                @:artist: "@Html.Raw(HttpUtility.JavaScriptStringEncode(t.Artist ?? "Unknown Artist"))",
-                @:coverPath: "https://picsum.photos/seed/@t.Id/300/300"
-            @:});
-        }
+<script>
 
-        // Функція запуску з Library
-        function playFromLibrary(index) {
-            if (window.PlayerState && typeof window.PlayerState.playQueue === 'function') {
-                window.PlayerState.playQueue(libraryTracks, index);
-            }
+var playerTracks = [
+    @foreach (var t in tracksList)
+    {
+        <text>
+        {
+            id: "@t.Id",
+            title: "@Html.Raw(HttpUtility.JavaScriptStringEncode(t.Title ?? ""))",
+            artist: "@Html.Raw(HttpUtility.JavaScriptStringEncode(t.Artist ?? ""))",
+            cover: "https://picsum.photos/seed/@t.Id/300/300",
+            url: "/media/@Html.Raw(HttpUtility.JavaScriptStringEncode(t.Filename ?? ""))"
+        },
+        </text>
+    }
+];
+
+// ▶ ВІДТВОРЕННЯ
+function playTrack(index, trackId) {
+    if (window.PlayerState && typeof window.PlayerState.playQueue === 'function') {
+        window.PlayerState.playQueue(playerTracks, index);
+    }
+    fetch(`/Playback/Record?mediaItemId=${trackId}`, { method: 'POST' });
+}
+
+// ❤️ ЛАЙК
+function toggleLike(btn, id) {
+    let svg = btn.querySelector("svg");
+    let active = svg.getAttribute("fill") === "#f43f5e";
+
+    if (active) {
+        svg.setAttribute("fill", "none");
+        svg.setAttribute("stroke", "white");
+        localStorage.removeItem("like_" + id);
+    } else {
+        svg.setAttribute("fill", "#f43f5e");
+        svg.setAttribute("stroke", "#f43f5e");
+        localStorage.setItem("like_" + id, "true");
+    }
+
+    fetch(`/Favorites/Toggle?mediaItemId=${id}`, { method: 'POST' });
+}
+
+// ⭐ РЕЙТИНГ
+function updateRating(el, id, rating) {
+    fetch('/Rating/SetRating', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `trackId=${id}&rating=${rating}`
+    }).then(() => location.reload());
+}
+
+// ❤️ ВІДНОВЛЕННЯ ЛАЙКІВ
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".heart-icon").forEach(svg => {
+        let id = svg.closest("button").getAttribute("onclick").match(/'(.*?)'/)[1];
+        if (localStorage.getItem("like_" + id)) {
+            svg.setAttribute("fill", "#f43f5e");
+            svg.setAttribute("stroke", "#f43f5e");
         }
-    </script>
+    });
+});
+
+</script>
 }

@@ -21,7 +21,7 @@
         <div class="history-grid">
             @foreach (var entry in entries)
             {
-                if (entry.MediaItem == null)
+                if (entry?.MediaItem == null)
                 {
                     <div class="history-row" style="opacity: 0.5; cursor: not-allowed;">
                         <div class="history-info">
@@ -33,17 +33,24 @@
                 }
                 else
                 {
-                    // Екрануємо одинарні лапки, щоб вони не ламали JavaScript
                     var safeTitle = entry.MediaItem.Title?.Replace("'", "\\'") ?? "Unknown";
                     var safeArtist = entry.MediaItem.Artist?.Replace("'", "\\'") ?? "Unknown";
-                    
-                    <div class="history-row" onclick="playSingleTrack('@entry.MediaItem.Id', '@entry.MediaItem.Filename', '@safeTitle', '@safeArtist', 'https://picsum.photos/seed/@entry.MediaItem.Id/300/300')" style="cursor: pointer;">
-                        <img class="history-cover" src="https://picsum.photos/seed/@entry.MediaItem.Id/80/80" alt="" />
+
+                    <div class="history-row"
+                         onclick="playSingleTrack('@entry.MediaItem.Id', '@entry.MediaItem.Filename', '@safeTitle', '@safeArtist', 'https://picsum.photos/seed/@entry.MediaItem.Id/300/300')"
+                         style="cursor: pointer;">
+
+                        <img class="history-cover"
+                             src="https://picsum.photos/seed/@entry.MediaItem.Id/80/80" />
+
                         <div class="history-info">
                             <div class="history-title">@entry.MediaItem.Title</div>
                             <div class="history-artist">@entry.MediaItem.Artist</div>
                         </div>
-                        <span class="history-time">@entry.DatePlayed.ToString("MMM d, yyyy · h:mm tt")</span>
+
+                        <span class="history-time">
+                            @entry.DatePlayed.ToString("MMM d, yyyy · h:mm tt")
+                        </span>
                     </div>
                 }
             }
@@ -53,7 +60,6 @@
 
 @section Scripts {
     <script>
-        // Проста функція для миттєвого відтворення обраного треку з історії
         function playSingleTrack(id, filename, title, artist, cover) {
             var singleTrackQueue = [{
                 id: id,
@@ -62,6 +68,7 @@
                 artist: artist,
                 coverPath: cover
             }];
+
             if (window.PlayerState && window.PlayerState.playQueue) {
                 window.PlayerState.playQueue(singleTrackQueue, 0);
             } else {

@@ -69,7 +69,19 @@ namespace MediaLibraryWebApp.Controllers
             ViewData["AvailableMedia"] = availableMedia;
             return View(playlist);
         }
+        // ⭐ NEW FEATURE: Weekly playlists (NO IMPACT ON EXISTING LOGIC)
+        public IActionResult Weekly()
+        {
+            var userId = GetUserId();
+            if (!userId.HasValue) return RedirectToAction("Login", "Account");
 
+            var weeklyPlaylists = _playlistRepository
+                .GetAll()
+                .Where(p => p.UserId == userId.Value && p.Name.Contains("Weekly"))
+                .ToList();
+
+            return View("Index", weeklyPlaylists);
+        }
         [HttpPost]
         public IActionResult AddTrack(int playlistId, int mediaItemId)
         {
@@ -118,5 +130,7 @@ namespace MediaLibraryWebApp.Controllers
             _playlistRepository.Delete(id);
             return RedirectToAction("Index");
         }
+        
     }
+    
 }

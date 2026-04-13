@@ -7,7 +7,6 @@ namespace MediaLibraryWebApp.Models
     public class Playlist
     {
         public int Id { get; set; }
-
         public int UserId { get; set; }
 
         [Required, MaxLength(255)]
@@ -18,7 +17,5 @@ namespace MediaLibraryWebApp.Models
         public User User { get; set; } = null!;
 
         public ICollection<PlaylistTrack> Tracks { get; set; } = new List<PlaylistTrack>();
-
-        public ICollection<PlaybackHistory> PlaybackHistory { get; set; } = new List<PlaybackHistory>();
     }
 }

@@ -1,6 +1,10 @@
+using System;
+using System.Linq;
+using System.Collections.Generic;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using MediaLibraryWebApp.Repositories;
+using MediaLibraryWebApp.Models;
 
 namespace MediaLibraryWebApp.Controllers
 {
@@ -17,41 +21,57 @@ namespace MediaLibraryWebApp.Controllers
 
         public IActionResult History()
         {
+            // 1. Перевіряємо авторизацію користувача
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
             if (!int.TryParse(userIdClaim, out var userId))
             {
                 return RedirectToAction("Login", "Account");
             }
 
-            // Guard against history entries that do not have a related media item loaded.
-            // This can happen if the media item was deleted after being played.
-            var history = _playbackRepository.GetByUser(userId)
-                .Where(h => h.MediaItem != null)
-                .ToList();
+            // 2. Отримуємо дані з бази
+            var history = _playbackRepository.GetByUser(userId);
 
-            return View(history);
+            // 3. ВИПРАВЛЕНО: Правильне і безпечне фільтрування
+            // Створюємо порожній список за замовчуванням
+            var safeHistory = new List<PlaybackHistory>();
+            
+            if (history != null)
+            {
+                safeHistory = history
+                    .ToList() // Спочатку завантажуємо всі записи в пам'ять (щоб БД не впала)
+                    .Where(h => h != null && h.MediaItem != null) // Безпечно фільтруємо "биті" записи
+                    .OrderByDescending(h => h.DatePlayed) // Додав сортування, щоб нові треки були зверху
+                    .ToList();
+            }
+
+            return View(safeHistory);
         }
 
         [HttpPost]
         public IActionResult Record(int mediaItemId)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
             if (!int.TryParse(userIdClaim, out var userId))
             {
                 return Unauthorized();
             }
 
-            // Ensure the media item exists
-            var media = _mediaRepository.GetAll().FirstOrDefault(m => m.Id == mediaItemId);
+            var media = _mediaRepository.GetAll()
+                .FirstOrDefault(m => m.Id == mediaItemId);
+
             if (media == null)
             {
-                return BadRequest();
+                return BadRequest("Трек не знайдено.");
             }
 
+            // Оновлюємо лічильник прослуховувань
             media.PlayCount += 1;
             _mediaRepository.Update(media);
 
-            var entry = new MediaLibraryWebApp.Models.PlaybackHistory
+            // Створюємо запис для історії
+            var entry = new PlaybackHistory
             {
                 UserId = userId,
                 MediaItemId = mediaItemId,
@@ -59,6 +79,7 @@ namespace MediaLibraryWebApp.Controllers
             };
 
             _playbackRepository.Add(entry);
+
             return Ok();
         }
     }

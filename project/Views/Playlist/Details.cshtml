@@ -5,17 +5,29 @@
     var playlist = Model;
     var availableMedia = ViewData["AvailableMedia"] as List<MediaLibraryWebApp.Models.MediaItem> ?? new List<MediaLibraryWebApp.Models.MediaItem>();
     
-    // ВИПРАВЛЕНО: Використовуємо PlaylistTrack замість PlaylistItem
-    var playlistTracks = playlist?.Tracks?.Where(t => t.MediaItem != null).OrderBy(t => t.Position).ToList() ?? new List<MediaLibraryWebApp.Models.PlaylistTrack>();
+    var playlistTracks = playlist?.Tracks?.Where(t => t.MediaItem != null)
+        .OrderBy(t => t.Position)
+        .ToList() ?? new List<MediaLibraryWebApp.Models.PlaylistTrack>();
 }
 
 <div class="animate-fade-in">
     
     <div class="page-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 style="margin: 0;">@playlist?.Name</h2>
+        <div>
+            <h2 style="margin: 0;">@playlist?.Name</h2>
+
+            @* ⭐ WEEKLY LABEL *@
+            @if (playlist != null && playlist.Name.Contains("Weekly"))
+            {
+                <div style="margin-top:5px; color:#1ed760; font-weight:bold;">
+                    ⭐ Auto-generated Weekly Playlist
+                </div>
+            }
+        </div>
         
         <div style="display: flex; gap: 15px; align-items: center;">
             
+            @* ▶ PLAY BUTTON *@
             @if (playlistTracks.Any())
             {
                 <button onclick="playFromPlaylist(0)" 
@@ -26,15 +38,26 @@
                 </button>
             }
 
+            @* 🔥 WEEKLY GENERATE BUTTON *@
+            <a href="/Playlist/GenerateWeekly?userId=1"
+               class="btn"
+               style="background-color:#1ed760; color:#000; font-weight:bold; border-radius:20px; padding:6px 20px; text-decoration:none; font-size:14px;">
+                Generate Weekly Mix
+            </a>
+
+            @* SAVE *@
             <a href="/Playlist" class="btn" style="background-color: #1ed760; color: #000; font-weight: bold; border-radius: 20px; padding: 6px 20px; text-decoration: none; font-size: 14px;">
                 Save
             </a>
 
+            @* DELETE *@
             @if (playlist != null)
             {
                 <form method="post" action="/Playlist/Delete" style="margin: 0;">
                     <input type="hidden" name="id" value="@playlist.Id" />
-                    <button class="btn-secondary" type="submit" style="border-radius: 20px; padding: 6px 20px;">Delete Playlist</button>
+                    <button class="btn-secondary" type="submit" style="border-radius: 20px; padding: 6px 20px;">
+                        Delete Playlist
+                    </button>
                 </form>
             }
         </div>
@@ -42,6 +65,15 @@
 
     <div class="section">
         <h3>Tracks (@playlistTracks.Count)</h3>
+
+        @* ⭐ WEEKLY DESCRIPTION *@
+        @if (playlist != null && playlist.Name.Contains("Weekly"))
+        {
+            <p style="color:gray;">
+                This playlist was automatically generated based on your most played tracks from the last 7 days.
+            </p>
+        }
+
         @if (!playlistTracks.Any())
         {
             <p>No tracks yet. Add some below.</p>
@@ -69,7 +101,7 @@
                             <td>@track.MediaItem.Genre</td>
                             <td>
                                 <button class="btn-play-sm" onclick="event.stopPropagation(); playFromPlaylist(@i)" style="background: none; border: none; color: white; cursor: pointer; margin-right: 10px;">
-                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                    ▶
                                 </button>
                                 <form method="post" action="/Playlist/RemoveTrack" style="display:inline;">
                                     <input type="hidden" name="playlistId" value="@playlist.Id" />
@@ -86,6 +118,7 @@
 
     <div class="section">
         <h3>Add Track to Playlist</h3>
+
         @if (!availableMedia.Any())
         {
             <p>All media are already in this playlist.</p>
@@ -124,13 +157,15 @@
 
 @section Scripts {
     <script>
-        var currentPlaylistTracks = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(playlistTracks.Select(t => new {
-            id = t.MediaItem.Id,
-            filename = t.MediaItem.Filename ?? "",
-            title = t.MediaItem.Title ?? "Unknown",
-            artist = t.MediaItem.Artist ?? "Unknown",
-            coverPath = $"https://picsum.photos/seed/{t.MediaItem.Id}/300/300"
-        })));
+        var currentPlaylistTracks = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+            playlistTracks.Select(t => new {
+                id = t.MediaItem.Id,
+                filename = t.MediaItem.Filename ?? "",
+                title = t.MediaItem.Title ?? "Unknown",
+                artist = t.MediaItem.Artist ?? "Unknown",
+                coverPath = $"https://picsum.photos/seed/{t.MediaItem.Id}/300/300"
+            })
+        ));
 
         function playFromPlaylist(index) {
             if (window.PlayerState && typeof window.PlayerState.playQueue === 'function') {

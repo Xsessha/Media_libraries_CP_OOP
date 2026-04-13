@@ -32,9 +32,8 @@ namespace MediaLibraryWebApp.Models
         public ICollection<PlaybackHistory> PlaybackHistory { get; set; } = new List<PlaybackHistory>();
         public ICollection<FavoriteMedia> FavoriteMedia { get; set; } = new List<FavoriteMedia>();
 
-        public double AverageRating =>
-            Ratings.Count == 0 ? 0 : Ratings.Average(r => r.RatingValue);
+        // ВИПРАВЛЕНО: Знову обчислювана властивість. База даних її ігноруватиме.
+        public double AverageRating => 
+            Ratings != null && Ratings.Any() ? Ratings.Average(r => r.RatingValue) : 0;
     }
 }
-
-

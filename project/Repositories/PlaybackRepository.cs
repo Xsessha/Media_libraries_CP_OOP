@@ -15,24 +15,26 @@ namespace MediaLibraryWebApp.Repositories
 
         public IEnumerable<PlaybackHistory> GetAll()
         {
-            return _context.PlaybackHistory
-                .OrderByDescending(p => p.DatePlayed)
+            return _context.PlaybackHistories
                 .Include(p => p.MediaItem)
+                .Include(p => p.User)
+                .OrderByDescending(p => p.DatePlayed)
                 .ToList();
         }
 
         public IEnumerable<PlaybackHistory> GetByUser(int userId)
         {
-            return _context.PlaybackHistory
+            return _context.PlaybackHistories
+                .Include(p => p.MediaItem)
+                .Include(p => p.User)
                 .Where(p => p.UserId == userId)
                 .OrderByDescending(p => p.DatePlayed)
-                .Include(p => p.MediaItem)
                 .ToList();
         }
 
         public void Add(PlaybackHistory playback)
         {
-            _context.PlaybackHistory.Add(playback);
+            _context.PlaybackHistories.Add(playback);
             _context.SaveChanges();
         }
     }
