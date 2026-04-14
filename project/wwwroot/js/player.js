@@ -6,16 +6,33 @@ if (!window.musicAudio) {
 // ===== PLAYER STATE =====
 window.PlayerState = {
 
+    isShuffle: false,
+
     init: function () {
         console.log("🎧 Player started");
 
         this.updateUI();
 
+        // ===== LOAD SAVED VOLUME =====
+        const volume = document.getElementById("volume-range");
+        const savedVolume = localStorage.getItem("music_volume");
+
+        if (volume) {
+            const vol = savedVolume ? parseFloat(savedVolume) : 0.7;
+            volume.value = vol;
+            window.musicAudio.volume = vol;
+
+            volume.addEventListener("input", (e) => {
+                const val = parseFloat(e.target.value);
+                window.musicAudio.volume = val;
+                localStorage.setItem("music_volume", val);
+            });
+        }
+
         // ===== AUDIO EVENTS =====
         window.musicAudio.onplay = () => {
             this.syncIcon(true);
             this.setStatus("Playing");
-            this.saveToHistory();
         };
 
         window.musicAudio.onpause = () => {
@@ -24,12 +41,7 @@ window.PlayerState = {
         };
 
         window.musicAudio.onended = () => {
-            this.setStatus("Stopped");
             this.nextTrack();
-        };
-
-        window.musicAudio.onerror = () => {
-            console.error("❌ Audio error:", window.musicAudio.error);
         };
 
         window.musicAudio.ontimeupdate = () => {
@@ -46,20 +58,32 @@ window.PlayerState = {
             bar.addEventListener("click", (e) => {
                 const rect = bar.getBoundingClientRect();
                 const percent = (e.clientX - rect.left) / rect.width;
+
                 if (window.musicAudio.duration) {
-                    window.musicAudio.currentTime = percent * window.musicAudio.duration;
+                    window.musicAudio.currentTime =
+                        percent * window.musicAudio.duration;
                 }
             });
         }
+    },
 
-        // ===== VOLUME =====
-        const volume = document.getElementById("volume-range");
-        if (volume) {
-            window.musicAudio.volume = volume.value;
-            volume.addEventListener("input", (e) => {
-                window.musicAudio.volume = e.target.value;
-            });
+    // ===== SHUFFLE =====
+    toggleShuffle: function () {
+        this.isShuffle = !this.isShuffle;
+
+        const btn = document.getElementById("btn-shuffle");
+
+        if (btn) {
+            if (this.isShuffle) {
+                btn.style.color = "#1DB954";
+                btn.style.transform = "scale(1.1)";
+            } else {
+                btn.style.color = "#ffffff";
+                btn.style.transform = "scale(1)";
+            }
         }
+
+        console.log("Shuffle:", this.isShuffle);
     },
 
     // ===== PLAY QUEUE =====
@@ -80,21 +104,14 @@ window.PlayerState = {
 
         if (!track) return;
 
-        console.log("🎵 Playing:", track);
-
         const file = track.filename || track.FileName || track.url;
-        if (!file) {
-            console.error("❌ No file!");
-            return;
-        }
+        if (!file) return;
 
-        // === ВИПРАВЛЕННЯ ШЛЯХУ ДО ФАЙЛУ (щоб не було 404 Not Found) ===
         let src = file;
+
         if (!src.startsWith("http")) {
-            if (!src.startsWith("/")) src = "/" + src; // додаємо /, якщо немає
-            if (!src.includes("/media/")) src = "/media" + src; // додаємо /media/, якщо немає
-            // Залізобетонно прибираємо дублювання, якщо вони якось утворились
-            src = src.replace(/\/media\/\/media\//g, "/media/").replace(/\/media\/media\//g, "/media/");
+            if (!src.startsWith("/")) src = "/" + src;
+            if (!src.includes("/media/")) src = "/media" + src;
         }
 
         if (window.musicAudio.src !== window.location.origin + src) {
@@ -107,7 +124,7 @@ window.PlayerState = {
         this.updateUI();
 
         if (force) {
-            window.musicAudio.play().catch(e => console.log("Blocked:", e));
+            window.musicAudio.play().catch(() => {});
         }
     },
 
@@ -123,32 +140,52 @@ window.PlayerState = {
             : window.musicAudio.pause();
     },
 
+    // 🔥 FIXED SHUFFLE NEXT
     nextTrack: function () {
         const queue = JSON.parse(localStorage.getItem("music_queue")) || [];
         if (queue.length === 0) return;
 
-        let index = (parseInt(localStorage.getItem("music_index")) || 0) + 1;
-        if (index >= queue.length) index = 0;
+        let currentIndex = parseInt(localStorage.getItem("music_index")) || 0;
+        let index;
+
+        if (this.isShuffle) {
+            if (queue.length === 1) return;
+
+            do {
+                index = Math.floor(Math.random() * queue.length);
+            } while (index === currentIndex);
+
+        } else {
+            index = currentIndex + 1;
+            if (index >= queue.length) index = 0;
+        }
 
         localStorage.setItem("music_index", index);
         this.loadAndPlay(true);
     },
 
+    // 🔥 FIXED SHUFFLE PREV
     prevTrack: function () {
         const queue = JSON.parse(localStorage.getItem("music_queue")) || [];
         if (queue.length === 0) return;
 
-        let index = (parseInt(localStorage.getItem("music_index")) || 0) - 1;
-        if (index < 0) index = queue.length - 1;
+        let currentIndex = parseInt(localStorage.getItem("music_index")) || 0;
+        let index;
+
+        if (this.isShuffle) {
+            if (queue.length === 1) return;
+
+            do {
+                index = Math.floor(Math.random() * queue.length);
+            } while (index === currentIndex);
+
+        } else {
+            index = currentIndex - 1;
+            if (index < 0) index = queue.length - 1;
+        }
 
         localStorage.setItem("music_index", index);
         this.loadAndPlay(true);
-    },
-
-    stop: function () {
-        window.musicAudio.pause();
-        window.musicAudio.currentTime = 0;
-        this.setStatus("Stopped");
     },
 
     // ===== UI =====
@@ -158,8 +195,6 @@ window.PlayerState = {
         const track = queue[index];
 
         if (!track) return;
-
-        console.log("🎨 UI:", track);
 
         const title = document.getElementById("player-title");
         const artist = document.getElementById("player-artist");
@@ -175,7 +210,6 @@ window.PlayerState = {
                 `https://picsum.photos/seed/${track.id || track.Id}/300/300`;
 
             cover.src = img;
-            cover.style.display = "block";
         }
     },
 
@@ -192,7 +226,9 @@ window.PlayerState = {
 
         if (!window.musicAudio.duration) return;
 
-        const pct = (window.musicAudio.currentTime / window.musicAudio.duration) * 100;
+        const pct =
+            (window.musicAudio.currentTime / window.musicAudio.duration) * 100;
+
         if (fill) fill.style.width = pct + "%";
 
         if (time) {
@@ -224,68 +260,10 @@ window.PlayerState = {
             : `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                  <polygon points="5 3 19 12 5 21 5 3"/>
                </svg>`;
-    },
-
-    // ===== HISTORY =====
-    saveToHistory: function () {
-        try {
-            const queue = JSON.parse(localStorage.getItem("music_queue")) || [];
-            const index = parseInt(localStorage.getItem("music_index")) || 0;
-            const track = queue[index];
-
-            if (!track || !track.id) return;
-
-            fetch('/Playback/Record', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: 'mediaItemId=' + encodeURIComponent(track.id)
-            });
-        } catch (e) {
-            console.log("History error:", e);
-        }
     }
 };
 
-// ===== INIT ТА ЛОГІКА РЕЙТИНГУ =====
+// ===== INIT =====
 document.addEventListener("DOMContentLoaded", () => {
-    // Запускаємо плеєр
     window.PlayerState.init();
-
-    // === ЛОГІКА ДЛЯ КЛІКУ ПО ЗІРОЧКАХ РЕЙТИНГУ ===
-    const stars = document.querySelectorAll('.rating-star'); 
-
-    stars.forEach(star => {
-        star.addEventListener('click', function(e) {
-            e.preventDefault();
-
-            // Отримуємо дані з атрибутів зірочки
-            const trackId = this.getAttribute('data-track-id');
-            const ratingValue = this.getAttribute('data-rating');
-
-            if (!trackId || !ratingValue) return;
-
-            // Відправляємо дані на сервер
-            fetch(`/Rating/SetRating?trackId=${trackId}&rating=${ratingValue}`, {
-                method: 'POST'
-            })
-            .then(response => {
-                if (!response.ok) throw new Error("Помилка на сервері");
-                return response.json();
-            })
-            .then(data => {
-                console.log("Оцінка збережена. Новий середній рейтинг:", data.average);
-                
-                // Оновлюємо відображення рейтингу на сторінці
-                const displayEl = document.getElementById(`rating-display-${trackId}`);
-                if (displayEl) {
-                    displayEl.innerText = data.average;
-                }
-                
-                // Додатково можна додати анімацію чи колір для натиснутих зірочок тут
-            })
-            .catch(error => {
-                console.error('Помилка при відправці рейтингу:', error);
-            });
-        });
-    });
 });
